@@ -1,0 +1,51 @@
+import numpy as np
+
+# Initial matrix with estimated values
+A = np.array([
+    [1, 3, 5, 2.062, 1/7],
+    [1/3, 1, 4, 6, 1.77],
+    [1/5, 1/4, 1, 2, 1/9],
+    [1/2.062, 1/6, 1/2, 1, 1/3],
+    [7, 1/1.77, 9, 3, 1]
+])
+
+# Parameters
+eta = 0.1
+zeta = 0.03  # Convergence threshold
+max_iterations = 9
+
+# Function to iteratively update the matrix
+def update_matrix(A, eta):
+    A_new = A.copy()
+    n = A.shape[0]
+    
+    for i in range(n):
+        for j in range(i+1, n):  # Only the upper part of the matrix
+            sum_term = 0
+            for k in range(n):
+                if k != i and k != j:
+                    sum_term += (A[i, k] * A[k, j]) / A[i, j]
+            
+            A_new[i, j] += eta * (sum_term / (n-2) - A[i, j])
+            A_new[j, i] = 1 / A_new[i, j]  # Respecting reciprocity
+    
+    return A_new
+
+# Function to compute the difference between iterations
+def matrix_difference(A, A_new):
+    return np.max(np.abs(A - A_new))
+
+# Iterations until convergence
+iteration = 0
+while iteration < max_iterations:
+    A_new = update_matrix(A, eta)
+    diff = matrix_difference(A, A_new)
+    
+    if diff < zeta:
+        break
+    
+    A = A_new
+    iteration += 1
+
+# Final matrix after optimization
+print(A)
