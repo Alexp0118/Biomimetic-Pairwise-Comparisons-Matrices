@@ -1,0 +1,80 @@
+import numpy as np
+
+# Function to calculate Kii according to the paper's formula
+def calculate_Kii(A, i, j, k):
+    kij = abs(1 - (A[i, j] * A[j, k]) / A[i, k])
+    kji = abs(1 - A[i, k] / (A[i, j] * A[j, k]))
+    return min(kij, kji)
+
+# Function to calculate the global inconsistency I(A)
+def calculate_global_inconsistency(A):
+    n = A.shape[0]
+    I_A = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            for k in range(j + 1, n):
+                Kii = calculate_Kii(A, i, j, k)
+                I_A += Kii  # Sum Kii without squaring
+    return I_A
+
+# Optimization function using Gradient Descent
+def gradient_descent(A, eta, max_iterations, epsilon):
+    n = A.shape[0]
+    iteration = 0
+
+    while iteration < max_iterations:
+        A_new = A.copy()
+        
+        # Update each element of the matrix using the gradient
+        for i in range(n):
+            for j in range(i + 1, n):
+                grad_sum = 0
+                for k in range(n):
+                    if k != i and k != j:
+                        kij = (A[i, j] * A[j, k]) / A[i, k]
+                        kji = (A[i, k]) / (A[i, j] * A[j, k])
+                        # Calculate the gradient direction
+                        if abs(1 - kij) < abs(1 - kji):
+                            grad_sum += kij - 1
+                        else:
+                            grad_sum += 1 - kji
+                
+                # Update based on the gradient
+                A_new[i, j] -= eta * grad_sum
+                A_new[j, i] = 1 / A_new[i, j]  # Maintain reciprocity
+        
+        # Calculate the new global inconsistency
+        I_new = calculate_global_inconsistency(A_new)
+
+        # Stopping condition if global inconsistency falls below epsilon
+        if I_new < epsilon:
+            print(f"Convergence achieved in {iteration + 1} 
+            iterations with I(A) = {I_new:.6f}")
+            break
+        
+        # Update the matrix and increment the iteration
+        A = A_new
+        iteration += 1
+    
+    return A, I_new
+
+# Optimized parameters
+eta = 0.06       # Learning rate
+max_iterations = 500  # Maximum number of iterations
+epsilon = 0.33   # Threshold for global inconsistency
+
+# Initial matrix provided by the user
+A_initial = np.array([
+    [1, 1.4679, 2.5258, 2.2416, 1.4707],
+    [0.6812, 1, 2.0896, 2.7550, 1.3139],
+    [0.3959, 0.4786, 1, 1.2240, 0.7351],
+    [0.4461, 0.3630, 0.8170, 1, 0.6627],
+    [0.6799, 0.7611, 1.3604, 1.5090, 1]
+])
+
+# Execute the algorithm
+A_final, I_final = gradient_descent(A_initial, eta, max_iterations, epsilon)
+
+# Print results
+print("\nOptimized final matrix:\n", A_final)
+print(f"\nFinal global inconsistency I(A): {I_final:.6f}")
